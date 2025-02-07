@@ -3,13 +3,31 @@ import ply.lex as lex
 # Token List: Define all possible token types in the language
 tokens = [
     'IDENTIFIER', 'NUMBER', 'STRING',
-    'IF', 'THEN', 'ELSE', 'LET', 'VAL', 'FUNC', 
-    'END', 'IN', 'NIL', 'TRUE', 'FALSE', 'EXEC',
     'LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 
     'COMMA', 'ASSIGN',
     'EQUAL', 'LESS', 'GREATER', 'PLUS', 'MINUS', 
     'TIMES', 'DIVIDE', 'DOT', 'AND', 'OR'
 ]
+
+# Reserved words that have special meaning in the language
+# Cannot be used as variable or function identifiers
+reserved = {
+    'if': 'IF',
+    'then': 'THEN',
+    'else': 'ELSE',
+    'let': 'LET',
+    'val': 'VAL',
+    'func': 'FUNC',
+    'end': 'END',
+    'in': 'IN',
+    'nil': 'NIL',
+    'true': 'TRUE',
+    'false': 'FALSE',
+    'exec': 'EXEC'
+}
+
+# Add reserved to token list
+tokens += list(reserved.values())
 
 # Ignore whitespace characters
 # A whitespace is one of the following characters: tab (ASCII 9, \t ), newline 
@@ -21,31 +39,19 @@ def t_COMMENT(t):
     r'//.*'
     pass
 
-# Token Matching Rules using Regular expresions
-# Identifier: Start with letter, followed by letters, numbers, underscore, or single quote
-t_IDENTIFIER = r'[a-zA-Z][a-zA-Z0-9_\']*'
-
-# Number: One or more consecutive digits
-t_NUMBER =  r'[0-9]+'
+# Identifier: starts with lowercase/uppercase letter, followed by optional 
+# combinations of letters, digits, underscores, or single quotes
+# The t.type is updated based on the dictionary lookup:
+# - If t.value exists as a key in 'reserved', use its corresponding value as the type
+# - If t.value is not in 'reserved', keep it as 'IDENTIFIER'
+def t_IDENTIFIER(t):
+    r'[a-zA-Z][a-zA-Z0-9_\']*'
+    t.type = reserved.get(t.value, 'IDENTIFIER')
+    return t
 
 # String: Text between double quotes
-#The ^ symbol inside the brackets NEGATES the set, meaning "any character except" the ones inside.
-#In this case, [^"] means "any character except the double quotes."
+# [^"] means match any character except double quote
 t_STRING = r'"[^"]*"'
-
-# Keywords: Exact string matching
-t_IF = r'if'
-t_THEN = r'then'
-t_ELSE = r'else'
-t_LET = r'let'
-t_VAL = r'val'
-t_FUNC = r'func'
-t_END = r'end'
-t_IN = r'in'
-t_NIL = r'nil'
-t_TRUE = r'true'
-t_FALSE = r'false'
-t_EXEC = r'exec'
 
 # Delimiters (r means regex or regular expresion)
 t_LPAREN = r'\('

@@ -4,7 +4,7 @@ This repository contains the development of a **Language Processing Analyzer**, 
 
 ## Phase 1: Lexical Analysis
 
-### 🔹 What is a Lexical Analyzer?
+### What is a Lexical Analyzer?
 A **Lexical Analyzer (Lexer)** is the first stage of a compiler or interpreter. Its function is to **take the source code as input and break it down into the smallest meaningful units, called tokens**.
 
 **Example of source code:**
@@ -21,12 +21,34 @@ TOKEN_SYMBOL(;)
 ```
 These tokens will be used in the next phase (**syntax analysis**) to verify the structure of the code.
 
-### 🔹 How does it work?
+### How does it work?
 1. **Reads the source code.**
 2. **Ignores whitespace and comments.**
 3. **Identifies tokens according to lexical rules (regular expressions).**
 4. **Generates a list of tokens.**
 5. **Passes the tokens to the parser.**
+
+### Understanding Greedy Regular Expressions
+In lexical analysis, regular expressions are **greedy** by default, meaning they try to match the longest possible string that fits their pattern. Here's how it works:
+
+1. The lexer starts at a position in the input.
+2. It looks ahead character by character, trying to match the longest possible sequence.
+3. When it can't match any more characters, it creates a token with the matched sequence.
+
+**Example with numbers:**
+```python
+# For the regular expression '\d+' (one or more digits)
+Input: "123abc"
+
+Lexer process:
+1. Starts at '1' → matches
+2. Looks ahead to '2' → still matches
+3. Looks ahead to '3' → still matches
+4. Looks ahead to 'a' → doesn't match
+5. Creates NUMBER token with "123"
+```
+
+This greedy behavior ensures that numbers like "123" are tokenized as a single NUMBER token (123) rather than three separate tokens (1, 2, 3).
 
 ## Automata and Regular Expressions
 The **lexer** can be implemented using **Deterministic Finite Automata (DFA)**, generated from **Regular Expressions**.

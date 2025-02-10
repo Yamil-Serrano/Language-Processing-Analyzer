@@ -49,6 +49,12 @@ def t_IDENTIFIER(t):
     t.type = reserved.get(t.value, 'IDENTIFIER')
     return t
 
+# NUMBER: combinations of numbers from 1-9
+def t_NUMBER(t):
+    r'\d+'
+    t.value = int(t.value)
+    return t
+
 # String: Text between double quotes
 # [^"] means match any character except double quote
 t_STRING = r'"[^"]*"'

@@ -2,7 +2,7 @@ import ply.lex as lex
 
 # Token List: Define all possible token types in the language
 tokens = [
-    'IDENTIFIER', 'NUMBER', 'STRING',
+    'ID', 'ID_FUNC', 'NUMBER', 'STRING',
     'LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 
     'COMMA', 'ASSIGN',
     'EQUAL', 'LESS', 'GREATER', 'PLUS', 'MINUS', 
@@ -39,15 +39,13 @@ def t_COMMENT(t):
     r'//.*'
     pass
 
-# Identifier: starts with lowercase/uppercase letter, followed by optional 
-# combinations of letters, digits, underscores, or single quotes
-# The t.type is updated based on the dictionary lookup:
-# - If t.value exists as a key in 'reserved', use its corresponding value as the type
-# - If t.value is not in 'reserved', keep it as 'IDENTIFIER'
-def t_IDENTIFIER(t):
-    r'[a-zA-Z][a-zA-Z0-9_\']*'
-    t.type = reserved.get(t.value, 'IDENTIFIER')
+def t_ID_FUNC(t):
+    r'[A-Z][a-zA-Z0-9_\']*'
     return t
+
+def t_ID(t):
+    r'[a-z][a-zA-Z0-9_\']*'
+    t.type = reserved.get(t.value, 'ID')
 
 # NUMBER: combinations of numbers from 1-9
 def t_NUMBER(t):

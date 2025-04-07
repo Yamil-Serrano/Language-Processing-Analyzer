@@ -46,6 +46,7 @@ def t_ID_FUNC(t):
 def t_ID(t):
     r'[a-z][a-zA-Z0-9_\']*'
     t.type = reserved.get(t.value, 'ID')
+    return t 
 
 # NUMBER: combinations of numbers from 1-9
 def t_NUMBER(t):

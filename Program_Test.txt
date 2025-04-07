@@ -1,7 +1,5 @@
 // Use this code to test the scanner
 
-strting = "This is a string"
-
 func List[n] :=
     let func Helper[a] :=
                 if a > n | a = n
@@ -14,4 +12,5 @@ func List[n] :=
     end
 end
 
+exec List[5] // Test line using exec command
 

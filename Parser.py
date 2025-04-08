@@ -13,44 +13,72 @@ precedence = (
 )
 
 # Grammar rules with semantic actions
-def p_program(p):
-    '''program : facts
-               | facts exec_line'''
+def p_global_facts(p):
+    '''program : facts exec_line'''
     if len(p) == 2:
-        p[0] = {'type': 'program','facts': p[1]} # Case when the code does not hace an exec command
+        p[0] = {'facts': p[1]} # Case when the code does not have an exec command
     else:
-        p[0] = {'type': 'program','facts': p[1],'exec': p[2]} # Case when the code have an exec command
+        p[0] = {'facts': p[1], 'stm': p[2]} # Case when the code has an exec command
 
-def p_facts_multiple(p):
-    '''facts : func_def facts 
-             | assign facts'''
-    p[0] = [p[1]] + p[2]
+def p_facts_func_def(p):
+    '''facts : func_def facts '''
+    if p[2] == None:
+        p[0] = {p[1]["name"] : p[1]}
+    else:
+        p[0] = {p[1]["name"] : p[1]} | p[2]
+        
+def p_facts_assign(p):
+    '''facts : assign facts'''
+    if p[2] == None:
+        p[0] = {p[1]['name'] : p[1]}
+    else:
+        p[0] = {p[1]['name'] : p[1]} | p[2]
 
 def p_facts_empty(p):
     '''facts : '''  # Empty production for facts
-    p[0] = []
+    p[0] = {}
 
 def p_func_def(p):
     '''func_def : FUNC ID_FUNC LBRACE params RBRACE ASSIGN stm END'''
-    p[0] = {'type': 'func_def','name': p[2],'params': p[4],'body': p[7]}
+    p[0] = {
+            'type': 'func',
+            'name': p[2],
+            'params': p[4],
+            'stm': p[7]
+        }
 
-def p_params_multiple(p):
-    '''params : ID COMMA params
-              | ID_FUNC COMMA params'''
-    p[0] = [p[1]] + p[3]
-
-def p_params_single(p):
-    '''params : ID
-              | ID_FUNC'''
-    p[0] = [p[1]]
+def p_params_ID_COMMA_params(p):
+    '''params : ID COMMA params'''
+    p[0] = [{'type': 'id', 'id': p[1]}] + p[3]
+    
+def p_params_ID_FUNC_COMMA_params(p):
+    '''params : ID_FUNC COMMA params'''
+    p[0] = [{'type': 'id_func', 'id_func': p[1]}] + p[3]
+    
+def p_params_ID(p):
+    '''params : ID'''
+    p[0] = [{'type': 'id', 'id': p[1]}]
+    
+def p_params_ID_FUNC(p):
+    '''params : ID_FUNC'''
+    p[0] = [{'type': 'id_func', 'id_func': p[1]}]
 
 def p_assign(p):
     '''assign : VAL ID ASSIGN stm END'''
-    p[0] = {'type': 'assign','name': p[2],'value': p[4]}
+    p[0] = {
+            'type': 'val',
+            'name': p[2],
+            'stm': p[4]
+        }
+
 
 def p_stm_function_call(p):
     '''stm : ID_FUNC LBRACE args RBRACE'''
-    p[0] = {'type': 'func_call','name': p[1],'args': p[3]}
+    p[0] = {
+        'type': 'stm_func_call',
+        'id_func': p[1],
+        'args': p[3]
+    }
 
 def p_args_multiple(p):
     '''args : stm COMMA args'''
@@ -59,6 +87,14 @@ def p_args_multiple(p):
 def p_args_single(p):
     '''args : stm'''
     p[0] = [p[1]]
+
+def p_args_ID_FUNC(p):
+    '''args : ID_FUNC'''
+    p[0] = [{'type': 'id_func', 'id_func': p[1]}]
+    
+def p_args_ID_FUNC_COMMA(p):
+    '''args : ID_FUNC COMMA args'''
+    p[0] = [{'type': 'id_func', 'id_func': p[1]}] + p[3]
 
 # Binary operations
 def p_stm_binary_op(p):
@@ -72,32 +108,60 @@ def p_stm_binary_op(p):
            | stm EQUAL stm 
            | stm AND stm 
            | stm OR stm'''
-    p[0] = {'type': 'binary_op','operator': p[2],'left': p[1],'right': p[3]}
+    p[0] = {
+        'type': 'stm_op',
+        'op': p[2],
+        'value1': p[1],
+        'value2': p[3]
+    }
 
 # Literal values
 def p_stm_string(p):
     '''stm : STRING'''
-    p[0] = {'type': 'literal','value_type': 'string','value': p[1][1:-1]} # p[1][1:-1] Remove quotes
+    p[0] = {
+        'type': 'stm_value',
+        'type_value': 'string',
+        'value': p[1]
+    }
 
 def p_stm_number(p):
     '''stm : NUMBER'''
-    p[0] = {'type': 'literal','value_type': 'number','value': p[1]}
+    p[0] = {
+        'type': 'stm_value',
+        'type_value': 'number',
+        'value': p[1]
+    }
 
 def p_stm_true(p):
     '''stm : TRUE'''
-    p[0] = {'type': 'literal','value_type': 'bool','value': True}
+    p[0] = {
+        'type': 'stm_value',
+        'type_value': 'bool',
+        'value': True
+    }
 
 def p_stm_false(p):
     '''stm : FALSE'''
-    p[0] = {'type': 'literal','value_type': 'bool','value': False}
+    p[0] = {
+        'type': 'stm_value',
+        'type_value': 'bool',
+        'value': False
+    }
 
 def p_stm_nil(p):
     '''stm : NIL'''
-    p[0] = {'type': 'literal','value_type': 'nil','value': None}
+    p[0] = {
+        'type': 'stm_value',
+        'type_value': 'nil',
+        'value': None
+    }
 
 def p_stm_id(p):
     '''stm : ID'''
-    p[0] = {'type': 'variable','name': p[1]}
+    p[0] = {
+        'type': 'stm_id',
+        'id': p[1]
+    }
 
 # Grouped expression
 def p_stm_paren(p):
@@ -107,16 +171,25 @@ def p_stm_paren(p):
 # If statement
 def p_stm_if(p):
     '''stm : IF stm THEN stm ELSE stm END'''
-    p[0] = {'type': 'if','condition': p[2],'then': p[4],'else': p[6]}
+    p[0] = {
+        'type': 'stm_if',
+        'condition': p[2],
+        'then_stm': p[4],
+        'else_stm': p[6]
+    }
 
 # Let statement
 def p_stm_let(p):
     '''stm : LET facts IN stm END'''
-    p[0] = {'type': 'let_in','facts': p[2],'body': p[4]}
+    p[0] = {
+        'type': 'stm_let',
+        'facts': p[2],
+        'stm': p[4]
+    }
 
 def p_exec_line(p):
     '''exec_line : EXEC stm'''
-    p[0] = {'type': 'exec','stm': p[2]}
+    p[0] = p[2]
 
 # Error handling function
 def p_error(p):
@@ -127,7 +200,7 @@ def p_error(p):
 
 # Main function to initiate parsing
 def main():
-    print("Initiating Parsing")
+    print("\nInitiating Parsing:")
 
     # Build the parser
     parser = yacc.yacc(debug=False)

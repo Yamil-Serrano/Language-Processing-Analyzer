@@ -1,16 +1,12 @@
-// Use this code to test the scanner
+// Use this code to test the parser
 
-func List[n] :=
-    let func Helper[a] :=
-                if a > n | a = n
-                    then nil
-                    else CONS[a, Helper[a+1]]
-                end
-        end
+func SomeFunction[n] := 
+    let 
+        val r := 15 end
     in
-        Helper[0]
+        n*r
     end
 end
 
-exec List[5] // Test line using exec command
+exec SomeFunction[3]
 

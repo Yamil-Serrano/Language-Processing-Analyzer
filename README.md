@@ -283,10 +283,100 @@ def p_assign(p):
     }  
 ```
 
-**Next Steps**
-* **Intermediate Code Generation**: Convert the validated AST into an intermediate representation (e.g., three-address code).
+## Phase 4: Interpreter
+
+### What is an Interpreter?
+
+The **Interpreter** is the component that **executes the program** by walking through the **Abstract Syntax Tree (AST)** and evaluating each node based on its type. Unlike a compiler, which translates code ahead of time, the interpreter works **dynamically**, processing instructions as it encounters them.
+
+### How Does It Work?
+
+1. **AST Traversal**: The interpreter starts at the root of the AST and recursively visits each node.
+2. **Environment Management**: It maintains environments (symbol tables) to track variable/function definitions and their scopes.
+3. **Evaluation**: For each AST node, it:
+   - Looks up identifiers (variables/functions)
+   - Evaluates expressions
+   - Applies operations
+   - Manages scope for `let`, `if`, and `function` blocks
+4. **Recursive Execution**: Evaluation of a node often involves evaluating its children first, then combining their results.
+
+---
+
+### Example: Interpreting a Function Call
+
+#### Source Code
+```text
+func SomeFunction[n] := 
+  let
+    val r := 15 end
+  in
+    n * r
+  end 
+end
+
+exec SomeFunction[3]
+```
+
+#### Step-by-Step Execution
+
+1. **Top-Level AST Traversal**
+   - The root contains:
+     - A function definition: `SomeFunction`
+     - A statement: `exec SomeFunction[3]`
+   - The function is stored in the **global environment**, but **not executed yet**.
+
+2. **Executing `exec SomeFunction[3]`**
+   - The interpreter:
+     - Looks up `SomeFunction` in the global environment.
+     - Creates a **new environment** for the function call.
+     - Assigns the argument `3` to the parameter `n`.
+
+3. **Evaluating the Function Body (`let` Block)**
+   - Enters the `let` block:
+     - Extends the current environment.
+     - Defines `r := 15`.
+   - Evaluates the body expression: `n * r`
+     - Looks up `n → 3`
+     - Looks up `r → 15`
+     - Performs the multiplication: `3 * 15 = 45`
+
+4. **Returning the Result**
+   - The value `45` is returned from the function.
+   - The environment is **restored** after the function ends.
+   - `exec` produces the final output: `45`
+
+---
+
+### Interpreter Function Breakdown
+
+| Node Type       | Action Taken                                          |
+|-----------------|--------------------------------------------------------|
+| `binary_op`     | Recursively evaluate left and right, then apply op     |
+| `function_call` | Create new environment, bind arguments, eval body      |
+| `let`           | Create local scope, define vars, evaluate expression   |
+| `if`            | Evaluate condition, then evaluate appropriate branch   |
+| `value` / `int` | Return literal value                                   |
+| `id`            | Look up variable in current environment                |
+
+---
+
+### Example Code (Python-like)
+
 ```python
-# Example intermediate code for 'x = 5 + 3'  
-t1 = 5 + 3  
-x = t1  
+def eval_function_call(node):
+    func = global_env[node['name']]
+    args = [evaluate(arg) for arg in node['args']]
+    local_env = create_env(func['params'], args)
+    return evaluate(func['body'], local_env)
+
+def evaluate(node, env):
+    if node['type'] == 'binary_op':
+        left = evaluate(node['left'], env)
+        right = evaluate(node['right'], env)
+        return apply_operator(node['operator'], left, right)
+    elif node['type'] == 'let':
+        new_env = env.copy()
+        for val in node['vals']:
+            new_env[val['name']] = evaluate(val['value'], new_env)
+        return evaluate(node['body'], new_env)
 ```

@@ -1,4 +1,4 @@
-from Lexical_Analyzer import tokens, lexer  # Import tokens from the lexer
+from Scanner import tokens, lexer  # Import tokens from the lexer
 import ply.yacc as yacc  # Import PLY's yacc module for parsing
 import json  # For print the AST in the terminal
 

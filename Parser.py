@@ -1,6 +1,19 @@
 from Scanner import tokens, lexer  # Import tokens from the lexer
 import ply.yacc as yacc  # Import PLY's yacc module for parsing
 import json  # For print the AST in the terminal
+import sys   # For error handling and exit
+
+# Custom error class for syntax errors
+class SyntaxErrorException(Exception):
+    def __init__(self, message, lineno=None, lexpos=None, token=None):
+        self.message = message
+        self.lineno = lineno
+        self.lexpos = lexpos
+        self.token = token
+        super().__init__(self.message)
+
+# Global variable to track errors
+syntax_errors = []
 
 # Operator precedence: Defines the order in which operators are evaluated
 precedence = (
@@ -191,32 +204,84 @@ def p_exec_line(p):
     '''exec_line : EXEC stm'''
     p[0] = p[2]
 
-# Error handling function
+# Enhanced error handling function
 def p_error(p):
+    # Get source code from the file
+    with open('Program_Test.txt', 'r') as file:
+        source_lines = file.readlines()
+    
     if p:
-        print(f"Syntax error at token: {p.type}, value: {p.value}")
+        line_num = p.lineno if hasattr(p, 'lineno') else '?'
+        line_pos = p.lexpos if hasattr(p, 'lexpos') else '?'
+        
+        # Calculate line and column
+        line_num = 1
+        line_start = 0
+        for i, line in enumerate(source_lines):
+            if line_start + len(line) > p.lexpos:
+                line_num = i + 1
+                break
+            line_start += len(line)
+        
+        col_num = p.lexpos - line_start + 1
+        
+        # Format error message
+        error_msg = f"Syntax error at line {line_num}, column {col_num}: Token '{p.type}' with value '{p.value}'"
+        print("\n" + "="*80)
+        print(f"SYNTAX ERROR: {error_msg}")
+        
+        # Show the context of the error in the source code
+        if line_num > 0 and line_num <= len(source_lines):
+            context_line = source_lines[line_num-1].rstrip()
+            print(f"Line {line_num}: {context_line}")
+            print(" " * (col_num + len(f"Line {line_num}: ") - 1) + "^")
+            print("Expected valid token according to the grammar")
+        
+        syntax_errors.append((line_num, col_num, error_msg))
     else:
-        print("Syntax error at end of input.")
-
+        error_msg = "Syntax error at end of input (unexpected EOF)"
+        print("\n" + "="*80)
+        print(f"SYNTAX ERROR: {error_msg}")
+        print("Unexpected end of file. Check for missing closing tokens (end, etc.)")
+        syntax_errors.append((len(source_lines), 0, error_msg))
+    
+    # For error recovery, skip the token
+    if parser and p:
+        parser.errok()
+        
 # Main function to initiate parsing
 def main():
+    global parser  # Make parser globally available for error handling
     print("\nInitiating Parsing:")
 
-    # Build the parser
-    parser = yacc.yacc(debug=False)
+    # Build the parser with error recovery enabled
+    parser = yacc.yacc(debug=False, errorlog=yacc.NullLogger())
 
     # Read and parse the input file
-    with open('Program_Test.txt', 'r') as textFile:
-        data = textFile.read()
+    try:
+        with open('Program_Test.txt', 'r') as textFile:
+            data = textFile.read()
 
-    # Parse the content and get the AST
-    ast = parser.parse(data, lexer=lexer)
+        # Parse the content and get the AST
+        ast = parser.parse(data, lexer=lexer)
 
-    # Print the AST in a readable format
-    print("AST Structure:")
-    print(json.dumps(ast, indent=2) if ast else "AST is None (parsing failed)")
-
-    print("Finalizing Parsing")
+        # Check if there were any syntax errors
+        if syntax_errors:
+            print("\nParsing completed with errors:")
+            for line, col, msg in syntax_errors:
+                print(f"- {msg}")
+            print("\nAST was not fully constructed due to syntax errors.")
+            return None
+        else:
+            # Print the AST in a readable format
+            print("AST Structure:")
+            print(json.dumps(ast, indent=2) if ast else "AST is None (parsing failed)")
+            print("Finalizing Parsing")
+            return ast
+            
+    except Exception as e:
+        print(f"Error during parsing: {str(e)}")
+        return None
 
 # Run the main function
 if __name__ == '__main__':

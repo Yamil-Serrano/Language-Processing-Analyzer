@@ -2,6 +2,10 @@ from Scanner import tokens, lexer  # Import tokens from the lexer
 import ply.yacc as yacc  # Import PLY's yacc module for parsing
 import json  # For print the AST in the terminal
 import sys   # For error handling and exit
+from Scanner import syntax_errors as lexical_errors
+
+# Global variable to track errors
+syntax_errors = []  # Syntax errors
 
 # Custom error class for syntax errors
 class SyntaxErrorException(Exception):
@@ -11,9 +15,6 @@ class SyntaxErrorException(Exception):
         self.lexpos = lexpos
         self.token = token
         super().__init__(self.message)
-
-# Global variable to track errors
-syntax_errors = []
 
 # Operator precedence: Defines the order in which operators are evaluated
 precedence = (
@@ -83,7 +84,6 @@ def p_assign(p):
             'name': p[2],
             'stm': p[4]
         }
-
 
 def p_stm_function_call(p):
     '''stm : ID_FUNC LBRACE args RBRACE'''
@@ -206,77 +206,77 @@ def p_exec_line(p):
 
 # Enhanced error handling function
 def p_error(p):
-    # Get source code from the file
-    with open('Program_Test.txt', 'r') as file:
-        source_lines = file.readlines()
+    global parser
     
     if p:
-        line_num = p.lineno if hasattr(p, 'lineno') else '?'
-        line_pos = p.lexpos if hasattr(p, 'lexpos') else '?'
+        line_num = p.lineno
+        col_num = find_column(p)
+        error_msg = f"Syntax error on line {line_num}"
         
-        # Calculate line and column
-        line_num = 1
-        line_start = 0
-        for i, line in enumerate(source_lines):
-            if line_start + len(line) > p.lexpos:
-                line_num = i + 1
-                break
-            line_start += len(line)
+        # Add error to our list if it's not already there
+        if not any(err[0] == line_num for err in syntax_errors):
+            syntax_errors.append((line_num, col_num, error_msg))
         
-        col_num = p.lexpos - line_start + 1
-        
-        # Format error message
-        error_msg = f"Syntax error at line {line_num}, column {col_num}: Token '{p.type}' with value '{p.value}'"
-        print("\n" + "="*80)
-        print(f"SYNTAX ERROR: {error_msg}")
-        
-        # Show the context of the error in the source code
-        if line_num > 0 and line_num <= len(source_lines):
-            context_line = source_lines[line_num-1].rstrip()
-            print(f"Line {line_num}: {context_line}")
-            print(" " * (col_num + len(f"Line {line_num}: ") - 1) + "^")
-            print("Expected valid token according to the grammar")
-        
-        syntax_errors.append((line_num, col_num, error_msg))
-    else:
-        error_msg = "Syntax error at end of input (unexpected EOF)"
-        print("\n" + "="*80)
-        print(f"SYNTAX ERROR: {error_msg}")
-        print("Unexpected end of file. Check for missing closing tokens (end, etc.)")
-        syntax_errors.append((len(source_lines), 0, error_msg))
-    
-    # For error recovery, skip the token
-    if parser and p:
+        # Error recovery - attempt to continue parsing
         parser.errok()
+        
+        # Skip to the next token that could start a valid production
+        while True:
+            tok = parser.token()
+            if not tok or tok.type in ['END', 'VAL', 'FUNC', 'IF', 'LET', 'EXEC']:
+                break
+    else:
+        # End of file error
+        error_msg = "Syntax error at end of input"
+        syntax_errors.append((999, 0, error_msg))  # Use high line number for EOF errors
+
+def find_column(p):
+    # Calculate the column number
+    if p and hasattr(p.lexer, 'lexdata'):
+        last_cr = p.lexer.lexdata.rfind('\n', 0, p.lexpos)
+        if last_cr < 0:
+            last_cr = 0
+        return p.lexpos - last_cr
+    return 0
         
 # Main function to initiate parsing
 def main():
-    global parser  # Make parser globally available for error handling
-    print("\nInitiating Parsing:")
+    global parser
+    
+    # Clear any previous errors
+    syntax_errors.clear()
+    
+    print("-----------------------------------------------------\nInitiating Parsing...")
 
-    # Build the parser with error recovery enabled
+    # Create parser with error recovery
     parser = yacc.yacc(debug=False, errorlog=yacc.NullLogger())
 
-    # Read and parse the input file
     try:
         with open('Program_Test.txt', 'r') as textFile:
             data = textFile.read()
 
-        # Parse the content and get the AST
+        # Reset lexer for a clean start with proper line counting
+        lexer.lineno = 1
+        
+        # Parse the data
         ast = parser.parse(data, lexer=lexer)
-
-        # Check if there were any syntax errors
-        if syntax_errors:
+        
+        # Combine lexical and syntax errors, ensure they're sorted by line number
+        all_errors = lexical_errors + syntax_errors
+        sorted_errors = sorted(all_errors, key=lambda x: x[0])
+        
+        if sorted_errors:
             print("\nParsing completed with errors:")
-            for line, col, msg in syntax_errors:
-                print(f"- {msg}")
-            print("\nAST was not fully constructed due to syntax errors.")
+            for line, col, msg in sorted_errors:
+                # For EOF errors, don't show the high line number
+                if line == 999:
+                    print(f"- {msg}")
+                else:
+                    print(f"- {msg}")
+            print("\nAST was not fully constructed due to errors.")
             return None
         else:
-            # Print the AST in a readable format
-            print("AST Structure:")
-            print(json.dumps(ast, indent=2) if ast else "AST is None (parsing failed)")
-            print("Finalizing Parsing")
+            print("Finalizing Parsing without any errors.")
             return ast
             
     except Exception as e:

@@ -28,7 +28,7 @@ def main():
         print(f"\n\033[91mSYNTAX ERRORS DETECTED. Interpreter will not run.\033[0m")
         print("----------------------------------------------------------------\n")
         return
-
+        
     # If the AST is valid, proceed with execution
     if ast:
         # Print the AST in a readable format
@@ -41,42 +41,15 @@ def main():
             print("\n-----------------------------------------------------\nProgram Execution outputs: ")
             output = interpreter.interpret(ast)
             print(f"Output: {output}")
-            print("\nInterpreter Execution Complete\n-----------------------------------------------------\n")
+            print(f"\033[92mInterpreter Execution Complete\033[0m\n-----------------------------------------------------\n")
         except Exception as e:
             print(f"\nRUNTIME ERROR: {str(e)}")
-            print("Interpreter execution failed\n-----------------------------------------------------\n")
+            print(f"\n\033[91mInterpreter Execution failed\033[0m\n-----------------------------------------------------\n")
     else:
         print("\n-----------------------------------------------------")
-        print("AST creation failed. Interpreter will not run.")
+        print(f"\n\033[91mAST creation failed. Interpreter will not run.\033[0m")
         print("-----------------------------------------------------\n")
 
-def validate_syntax_only():
-    """
-    Function to validate syntax without executing the program
-    """
-    print("\nValidating syntax only...")
-    lexical_errors.clear()
-    syntax_errors.clear()
-    
-    ast = parser_main()
-    
-    if syntax_errors or lexical_errors:
-        all_errors = lexical_errors + syntax_errors
-        print(f"\nFailed: {len(all_errors)} syntax error(s) detected.")
-        
-        seen = set()
-        for line, _, msg in sorted(all_errors, key=lambda x: x[0]):
-            if line not in seen:
-                print(f"- {msg}")
-                seen.add(line)
-        return False
-    else:
-        print("\nSuccess: No syntax errors detected!")
-        return True
 
 if __name__ == '__main__':
-    # Check if the user wants to validate syntax only
-    if len(sys.argv) > 1 and sys.argv[1] == '--check-syntax':
-        validate_syntax_only()
-    else:
-        main()
+    main()

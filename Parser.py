@@ -26,13 +26,15 @@ precedence = (
     ('left', 'DOT'),  # Dot operator (e.g., object.member)
 )
 
-# Grammar rules with semantic actions
-def p_global_facts(p):
-    '''program : facts exec_line'''
-    if len(p) == 2:
-        p[0] = {'facts': p[1]} # Case when the code does not have an exec command
-    else:
-        p[0] = {'facts': p[1], 'stm': p[2]} # Case when the code has an exec command
+# Rules for programs without exec_line
+def p_program_facts(p):
+    'program : facts'
+    p[0] = {'facts': p[1]}
+
+# Rules for programs with exec_line
+def p_program_facts_exec(p):
+    'program : facts exec_line'
+    p[0] = {'facts': p[1], 'stm': p[2]}
 
 def p_facts_func_def(p):
     '''facts : func_def facts '''
@@ -273,7 +275,7 @@ def main():
                     print(f"- {msg}")
                 else:
                     print(f"- {msg}")
-            print("\nAST was not fully constructed due to errors.")
+            print(f"\n\033[91m\nAST was not fully constructed due to errors.\033[0m")        
             return None
         else:
             print("Finalizing Parsing without any errors.")

@@ -359,24 +359,3 @@ exec SomeFunction[3]
 | `id`            | Look up variable in current environment                |
 
 ---
-
-### Example Code (Python-like)
-
-```python
-def eval_function_call(node):
-    func = global_env[node['name']]
-    args = [evaluate(arg) for arg in node['args']]
-    local_env = create_env(func['params'], args)
-    return evaluate(func['body'], local_env)
-
-def evaluate(node, env):
-    if node['type'] == 'binary_op':
-        left = evaluate(node['left'], env)
-        right = evaluate(node['right'], env)
-        return apply_operator(node['operator'], left, right)
-    elif node['type'] == 'let':
-        new_env = env.copy()
-        for val in node['vals']:
-            new_env[val['name']] = evaluate(val['value'], new_env)
-        return evaluate(node['body'], new_env)
-```

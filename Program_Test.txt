@@ -1,12 +1,15 @@
-// Use this code to test the parser
-
-func SomeFunction[n] := 
-    let 
-        val r := 15 end
+func Fibonacci[n] :=
+    let
+        func FibHelper[remaining, current, next] :=
+            if remaining = 0 then
+                current
+            else
+                FibHelper[remaining - 1, next, current + next]
+            end
+        end
     in
-        n*r
+        FibHelper[n, 0, 1]
     end
 end
 
-exec SomeFunction[3]
-
+exec Fibonacci[100]
